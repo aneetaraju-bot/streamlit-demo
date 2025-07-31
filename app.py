@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
 st.set_page_config(page_title="Batch Health Zone Dashboard", layout="wide")
-st.title("📊 Batch Health Zone Dashboard - 4 Types Analysis")
+st.title("📊 Batch Health Zone Dashboard - Vertical & Category-wise Analysis")
 
 # Uploaders
 st.sidebar.header("📂 Upload Your CSV Files")
@@ -14,7 +14,7 @@ file_vertical_above = st.sidebar.file_uploader("2️⃣ Vertical-wise BH > 50%",
 file_category_below = st.sidebar.file_uploader("3️⃣ Category-wise BH < 10%", type="csv")
 file_category_above = st.sidebar.file_uploader("4️⃣ Category-wise BH > 50%", type="csv")
 
-# Color logic
+# Zone color logic
 def get_zone_color_below(val, avg):
     if val > avg + 5:
         return 'red'
@@ -31,7 +31,7 @@ def get_zone_color_above(val, avg):
     else:
         return 'red'
 
-# Chart drawing
+# Plotting function
 def plot_chart(df, title, label_col, is_below=True):
     df["Last week"] = df["Last week"].astype(str).str.replace("%", "").astype(float)
     df["This week"] = df["This week"].astype(str).str.replace("%", "").astype(float)
@@ -68,7 +68,7 @@ def plot_chart(df, title, label_col, is_below=True):
     ax.legend(handles=legend, loc='upper right', bbox_to_anchor=(1, 1))
     st.pyplot(fig)
 
-# Load and render charts
+# Render graphs
 if file_vertical_below:
     st.subheader("1️⃣ Vertical-wise BH < 10% (Risk Zones)")
     df = pd.read_csv(file_vertical_below)
@@ -82,13 +82,13 @@ if file_vertical_above:
     plot_chart(df, "Vertical-wise % of Batches Above BH 50%", "Vertical", is_below=False)
 
 if file_category_below:
-    st.subheader("3️⃣ Category-wise BH < 10% (Risk by Course)")
+    st.subheader("3️⃣ Category-wise BH < 10% (Risk Zones)")
     df = pd.read_csv(file_category_below)
     df.rename(columns=lambda x: x.strip(), inplace=True)
-    plot_chart(df, "Course-wise % of Batches Below BH 10%", "Course", is_below=True)
+    plot_chart(df, "Category-wise % of Batches Below BH 10%", "Category", is_below=True)
 
 if file_category_above:
-    st.subheader("4️⃣ Category-wise BH > 50% (Healthy by Course)")
+    st.subheader("4️⃣ Category-wise BH > 50% (Healthy Zones)")
     df = pd.read_csv(file_category_above)
     df.rename(columns=lambda x: x.strip(), inplace=True)
-    plot_chart(df, "Course-wise % of Batches Above BH 50%", "Course", is_below=False)
+    plot_chart(df, "Category-wise % of Batches Above BH 50%", "Category", is_below=False)
