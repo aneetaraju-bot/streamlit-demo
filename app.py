@@ -80,3 +80,9 @@ if file_c_above:
     df = pd.read_csv(file_c_above)
     df.columns = df.columns.str.strip()
     draw_zone_chart(df, label_col="Category", is_below=False, title="Category-wise BH > 50%")
+
+if file_c_above:
+    st.subheader("4️⃣ Category-wise BH > 50% (Healthy)")
+    df = pd.read_csv(file_c_above)
+    df.columns = df.columns.str.strip()
+    draw_zone_chart(df, label_col="Category", is_below=False, title="Category-wise BH > 50%")
