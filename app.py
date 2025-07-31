@@ -1,44 +1,94 @@
 import streamlit as st
-
-st.title("🚀 Hello Streamlit!")
-st.write("This is my first app online using Streamlit Cloud.")
-import streamlit as st
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 
-st.set_page_config(page_title="Exam Score Visualizer", layout="centered")
-st.title("📊 Exam Score Visualizer")
+st.set_page_config(page_title="Batch Health Zone Dashboard", layout="wide")
+st.title("📊 Batch Health Zone Dashboard - 4 Types Analysis")
 
-# Step 1: Upload CSV
-uploaded_file = st.file_uploader("📁 Upload your CSV file", type=["csv"])
+# Uploaders
+st.sidebar.header("📂 Upload Your CSV Files")
+file_vertical_below = st.sidebar.file_uploader("1️⃣ Vertical-wise BH < 10%", type="csv")
+file_vertical_above = st.sidebar.file_uploader("2️⃣ Vertical-wise BH > 50%", type="csv")
+file_category_below = st.sidebar.file_uploader("3️⃣ Category-wise BH < 10%", type="csv")
+file_category_above = st.sidebar.file_uploader("4️⃣ Category-wise BH > 50%", type="csv")
 
-if uploaded_file is not None:
-    try:
-        df = pd.read_csv(uploaded_file)
-        st.success("✅ File uploaded successfully!")
-        
-        st.subheader("📄 Data Preview")
-        st.dataframe(df)
+# Color logic
+def get_zone_color_below(val, avg):
+    if val > avg + 5:
+        return 'red'
+    elif avg - 5 <= val <= avg + 5:
+        return 'orange'
+    else:
+        return 'green'
 
-        # Ensure correct columns
-        required_columns = {"Student Name", "Exam", "Score"}
-        if required_columns.issubset(df.columns):
-            df["Score"] = pd.to_numeric(df["Score"], errors="coerce")
-            df = df.dropna(subset=["Score"])
+def get_zone_color_above(val, avg):
+    if val >= avg + 5:
+        return 'green'
+    elif avg - 5 <= val <= avg + 5:
+        return 'orange'
+    else:
+        return 'red'
 
-            # Step 2: Select exam
-            exam_list = df["Exam"].unique()
-            selected_exam = st.selectbox("📌 Select an Exam", exam_list)
+# Chart drawing
+def plot_chart(df, title, label_col, is_below=True):
+    df["Last week"] = df["Last week"].astype(str).str.replace("%", "").astype(float)
+    df["This week"] = df["This week"].astype(str).str.replace("%", "").astype(float)
 
-            # Step 3: Filter and visualize
-            filtered_df = df[df["Exam"] == selected_exam]
+    labels = df[label_col].tolist()
+    last = df["Last week"].tolist()
+    now = df["This week"].tolist()
 
-            st.subheader(f"📊 Scores in {selected_exam}")
-            st.bar_chart(filtered_df.set_index("Student Name")["Score"])
+    x = np.arange(len(labels))
+    width = 0.35
+    avg = np.mean(now)
 
-        else:
-            st.error("❌ CSV must contain 'Student Name', 'Exam', and 'Score' columns.")
+    colors = [
+        get_zone_color_below(v, avg) if is_below else get_zone_color_above(v, avg)
+        for v in now
+    ]
 
-    except Exception as e:
-        st.error(f"❌ Error reading file: {e}")
-else:
-    st.info("📤 Please upload a CSV file to begin.")
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(x - width/2, last, width, color='white', edgecolor='black', label='Last Week')
+    ax.bar(x + width/2, now, width, color=colors, edgecolor='black', label='This Week')
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=45, ha='right')
+    ax.set_ylabel("Percentage of Batches")
+    ax.set_title(f"{title} (Avg: {avg:.2f}%)")
+
+    legend = [
+        Patch(facecolor='green', edgecolor='black', label='🟩 Healthy'),
+        Patch(facecolor='orange', edgecolor='black', label='🟧 Watch Zone'),
+        Patch(facecolor='red', edgecolor='black', label='🟥 Risk'),
+        Patch(facecolor='white', edgecolor='black', label='⬜ Last Week'),
+        Patch(facecolor='black', edgecolor='black', label='⬛ This Week')
+    ]
+    ax.legend(handles=legend, loc='upper right', bbox_to_anchor=(1, 1))
+    st.pyplot(fig)
+
+# Load and render charts
+if file_vertical_below:
+    st.subheader("1️⃣ Vertical-wise BH < 10% (Risk Zones)")
+    df = pd.read_csv(file_vertical_below)
+    df.rename(columns=lambda x: x.strip(), inplace=True)
+    plot_chart(df, "Vertical-wise % of Batches Below BH 10%", "Vertical", is_below=True)
+
+if file_vertical_above:
+    st.subheader("2️⃣ Vertical-wise BH > 50% (Healthy Zones)")
+    df = pd.read_csv(file_vertical_above)
+    df.rename(columns=lambda x: x.strip(), inplace=True)
+    plot_chart(df, "Vertical-wise % of Batches Above BH 50%", "Vertical", is_below=False)
+
+if file_category_below:
+    st.subheader("3️⃣ Category-wise BH < 10% (Risk by Course)")
+    df = pd.read_csv(file_category_below)
+    df.rename(columns=lambda x: x.strip(), inplace=True)
+    plot_chart(df, "Course-wise % of Batches Below BH 10%", "Course", is_below=True)
+
+if file_category_above:
+    st.subheader("4️⃣ Category-wise BH > 50% (Healthy by Course)")
+    df = pd.read_csv(file_category_above)
+    df.rename(columns=lambda x: x.strip(), inplace=True)
+    plot_chart(df, "Course-wise % of Batches Above BH 50%", "Course", is_below=False)
